@@ -6,19 +6,26 @@
 
 import * as net from 'net';
 
-import { workspace, Disposable, ExtensionContext } from 'vscode';
+import { workspace, Disposable, ExtensionContext, commands, window, debug } from 'vscode';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, ErrorAction, ErrorHandler, CloseAction, TransportKind } from 'vscode-languageclient';
 
 function startLangServer(command: string, args: string[], documentSelector: string[]): Disposable {
 	const serverOptions: ServerOptions = {
-        command,
-        args,
+		command,
+		args,
+		options: {
+			cwd: '/Users/donjayamanne/Desktop/Development/vscode/python-language-server',
+			env: {
+				PYTHONPATH: '/Users/donjayamanne/Desktop/Development/vscode/python-language-server'
+			}
+		}
 	};
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: documentSelector,
-        synchronize: {
-            configurationSection: "pyls"
-        }
+		synchronize: {
+			configurationSection: "pyls"
+		},
+		outputChannelName: 'Behave'
 	}
 	return new LanguageClient(command, serverOptions, clientOptions).start();
 }
@@ -43,9 +50,47 @@ function startLangServerTCP(addr: number, documentSelector: string[]): Disposabl
 }
 
 export function activate(context: ExtensionContext) {
-    const executable = workspace.getConfiguration("pyls").get<string>("executable");
-    context.subscriptions.push(startLangServer(executable, ["-vv"], ["python"]));
-    // For TCP server needs to be started seperately
-    // context.subscriptions.push(startLangServerTCP(2087, ["python"]));
+	// context.subscriptions.push(startLangServer("/Users/donjayamanne/.local/share/virtualenvs/python-language-server-s8g1nifC/bin/python", ["-m", "pyls", "-vv"], ["python"]));
+	context.subscriptions.push(startLangServer("/Users/donjayamanne/.local/share/virtualenvs/python-language-server-s8g1nifC/bin/python", ["-m", "pyls", "-vv"], ["python", "feature"]));
+
+	context.subscriptions.push(commands.registerCommand('behave.runscenario', (scenario: string) => {
+		window.showInformationMessage(`Run Scenario: ${scenario}`);
+	}))
+	context.subscriptions.push(commands.registerCommand('behave.runfeature', (feature: string) => {
+		window.showInformationMessage(`Run Feature: ${feature}`);
+	}))
+	context.subscriptions.push(commands.registerCommand('behave.runscenario_outline', (scenario: string) => {
+		window.showInformationMessage(`Run Scenario Outline: ${scenario}`);
+	}))
+	context.subscriptions.push(commands.registerCommand('behave.debugscenario_outline', (feature: string) => {
+		window.showInformationMessage(`Debug Scenario Outline: ${feature}`);
+		startDebugging(feature);
+	}))
+	context.subscriptions.push(commands.registerCommand('behave.debugscenario', (scenario: string) => {
+		window.showInformationMessage(`Debug Scenario: ${scenario}`);
+		startDebugging(scenario);
+	}))
+	context.subscriptions.push(commands.registerCommand('behave.debugfeature', (feature: string) => {
+		window.showInformationMessage(`Debug Feature: ${feature}`);
+		startDebugging(feature);
+	}))
+	// context.subscriptions.push(startLangServer("/Users/donjayamanne/.local/share/virtualenvs/python-language-server-s8g1nifC/bin/python", ["-m", "pyls", "-vv"], ["python", "feature"]));
+	// For TCP server needs to be started seperately
+	// context.subscriptions.push(startLangServerTCP(2087, ["python"]));
 }
 
+async function startDebugging(name?: string) {
+	const pythonPath = '/Users/donjayamanne/.local/share/virtualenvs/behaveSample-8n1WKFjY/bin/python';
+	const args = name ? ['-n', name] : [];
+	const debugConfig = {
+		name: 'Behave',
+		type: 'python',
+		request: 'launch',
+		module: 'behave',
+		pythonPath,
+		args,
+		// console: 'integratedTerminal'
+		console: 'none'
+	}
+	await debug.startDebugging(workspace.workspaceFolders[0], debugConfig);
+}

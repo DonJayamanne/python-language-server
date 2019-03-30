@@ -4,6 +4,7 @@ import os
 from pyls import uris, lsp
 from pyls.workspace import Document
 from pyls.plugins.jedi_completion import pyls_completions as pyls_jedi_completions
+from pyls.plugins.code_lens import pyls_code_lens
 from pyls.plugins.rope_completion import pyls_completions as pyls_rope_completions
 
 LOCATION = os.path.realpath(

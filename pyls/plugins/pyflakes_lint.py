@@ -20,6 +20,7 @@ PYFLAKES_ERROR_MESSAGES = (
 
 @hookimpl
 def pyls_lint(document):
+    return []
     reporter = PyflakesDiagnosticReport(document.lines)
     pyflakes_api.check(document.source.encode('utf-8'), document.path, reporter=reporter)
     return reporter.diagnostics

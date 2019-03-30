@@ -8,6 +8,7 @@ log = logging.getLogger(__name__)
 
 @hookimpl
 def pyls_lint(config, document):
+    return []
     settings = config.plugin_settings('pycodestyle')
     log.debug("Got pycodestyle settings: %s", settings)
 

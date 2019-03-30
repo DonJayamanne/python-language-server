@@ -240,7 +240,7 @@ class PythonLanguageServer(MethodDispatcher):
         self.workspace.rm_document(textDocument['uri'])
 
     def m_text_document__did_open(self, textDocument=None, **_kwargs):
-        self.workspace.put_document(textDocument['uri'], textDocument['text'], version=textDocument.get('version'))
+        self.workspace.put_document(textDocument['uri'], textDocument['text'], version=textDocument.get('version'), language_id=textDocument.get('languageId'))
         self._hook('pyls_document_did_open', textDocument['uri'])
         self.lint(textDocument['uri'], is_saved=False)
 

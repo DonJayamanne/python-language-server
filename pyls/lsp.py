@@ -70,6 +70,7 @@ class SymbolKind(object):
     Number = 16
     Boolean = 17
     Array = 18
+    Object = 19
 
 
 class TextDocumentSyncKind(object):

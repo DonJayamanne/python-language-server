@@ -67,8 +67,8 @@ class Workspace(object):
         """
         return self._docs.get(doc_uri) or self._create_document(doc_uri)
 
-    def put_document(self, doc_uri, source, version=None):
-        self._docs[doc_uri] = self._create_document(doc_uri, source=source, version=version)
+    def put_document(self, doc_uri, source, version=None, language_id=None):
+        self._docs[doc_uri] = self._create_document(doc_uri, source=source, version=version, language_id=language_id)
 
     def rm_document(self, doc_uri):
         self._docs.pop(doc_uri)
@@ -91,22 +91,24 @@ class Workspace(object):
         files = _utils.find_parents(self._root_path, document_path, ['setup.py']) or []
         return [os.path.dirname(setup_py) for setup_py in files]
 
-    def _create_document(self, doc_uri, source=None, version=None):
+    def _create_document(self, doc_uri, source=None, version=None, language_id=None):
         path = uris.to_fs_path(doc_uri)
         return Document(
             doc_uri, source=source, version=version,
             extra_sys_path=self.source_roots(path),
             rope_project_builder=self._rope_project_builder,
+			language_id=language_id,
         )
 
 
 class Document(object):
 
-    def __init__(self, uri, source=None, version=None, local=True, extra_sys_path=None, rope_project_builder=None):
+    def __init__(self, uri, source=None, version=None, local=True, extra_sys_path=None, rope_project_builder=None, language_id=None):
         self.uri = uri
         self.version = version
         self.path = uris.to_fs_path(uri)
         self.filename = os.path.basename(self.path)
+        self.language_id = language_id
 
         self._local = local
         self._source = source

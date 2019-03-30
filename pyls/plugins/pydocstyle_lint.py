@@ -26,6 +26,7 @@ def pyls_settings():
 
 @hookimpl
 def pyls_lint(config, document):
+    return []
     settings = config.plugin_settings('pydocstyle')
     log.debug("Got pydocstyle settings: %s", settings)
 
