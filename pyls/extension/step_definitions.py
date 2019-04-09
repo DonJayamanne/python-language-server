@@ -1,177 +1,193 @@
 import ast
-import os
-import functools
 import collections
-import parso
-from behave import parser
-# from pyls.extension.utils import memoize
-from behave import step_registry
-from behave import runner_util
-from behave.runner import Runner
-from behave.configuration import Configuration, ConfigError
+import functools
+import os
+import os.path
+import sys
+
+from pyls.extension.utils import memoize
+from behave import parser, runner_util, step_registry
+from behave.configuration import ConfigError, Configuration
+from behave.runner import Runner, Context
+from behave.runner_util import (PathManager, collect_feature_locations,
+                                parse_features)
 from behave.step_registry import registry
-from behave.runner_util import collect_feature_locations, parse_features
-from behave.runner_util import PathManager
+
+import parso
+import parso.python.tree
+
 
 def clear_steps_cache():
     get_step_definitions.cache.clear()
 
 step_definitions = None
-# @memoize
+@memoize
 def get_step_definitions(workspace_folder):
-	curdir = os.getcwd()
-	try:
-		os.chdir(workspace_folder.root_path)
-		def exec_file(filename, globals_=None, locals_=None):
-			if globals_ is None:
-				globals_ = {}
-			if locals_ is None:
-				locals_ = globals_
-			locals_["__file__"] = filename
-			with open(filename, "rb") as f:
-				# pylint: disable=exec-used
-				filename2 = os.path.relpath(filename, os.getcwd())
-				code = compile(f.read(), filename2, "exec", dont_inherit=True)
-				exec(code, globals_, locals_)
+    # import os
+    curdir = os.getcwd()
+    try:
+        # import sys
+        sys.path.append("/Users/donjayamanne/.vscode-insiders/extensions/pythonVSCode/uitests")
+        os.chdir(workspace_folder.root_path)
+        def exec_file(filename, globals_=None, locals_=None):
+            if globals_ is None:
+                globals_ = {}
+            if locals_ is None:
+                locals_ = globals_
+            locals_["__file__"] = filename
+            with open(filename, "rb") as f:
+                # pylint: disable=exec-used
+                filename2 = os.path.relpath(filename, os.getcwd())
+                code = compile(f.read(), filename2, "exec", dont_inherit=True)
+                exec(code, globals_, locals_)
 
 
-		def load_step_modules(step_paths):
-			"""Load step modules with step definitions from step_paths directories."""
-			from behave import matchers
-			from behave.step_registry import setup_step_decorators
-			step_globals = {
-				"use_step_matcher": matchers.use_step_matcher,
-				"step_matcher":     matchers.step_matcher, # -- DEPRECATING
-			}
-			setup_step_decorators(step_globals)
+        def load_step_modules(step_paths):
+            """Load step modules with step definitions from step_paths directories."""
+            from behave import matchers
+            from behave.step_registry import setup_step_decorators
+            step_globals = {
+                "use_step_matcher": matchers.use_step_matcher,
+                "step_matcher":     matchers.step_matcher, # -- DEPRECATING
+            }
+            setup_step_decorators(step_globals)
 
-			# -- Allow steps to import other stuff from the steps dir
-			# NOTE: Default matcher can be overridden in "environment.py" hook.
-			with PathManager(step_paths):
-				default_matcher = matchers.current_matcher
-				for path in step_paths:
-					for name in sorted(os.listdir(path)):
-						if name.endswith(".py"):
-							# -- LOAD STEP DEFINITION:
-							# Reset to default matcher after each step-definition.
-							# A step-definition may change the matcher 0..N times.
-							# ENSURE: Each step definition has clean globals.
-							# try:
-							step_module_globals = step_globals.copy()
-							exec_file(os.path.join(path, name), step_module_globals)
-							matchers.current_matcher = default_matcher
+            # -- Allow steps to import other stuff from the steps dir
+            # NOTE: Default matcher can be overridden in "environment.py" hook.
+            with PathManager(step_paths):
+                default_matcher = matchers.current_matcher
+                for path in step_paths:
+                    for name in sorted(os.listdir(path)):
+                        if name.endswith(".py"):
+                            # -- LOAD STEP DEFINITION:
+                            # Reset to default matcher after each step-definition.
+                            # A step-definition may change the matcher 0..N times.
+                            # ENSURE: Each step definition has clean globals.
+                            # try:
+                            step_module_globals = step_globals.copy()
+                            exec_file(os.path.join(path, name), step_module_globals)
+                            matchers.current_matcher = default_matcher
 
-		class MyRunner(Runner):
-			def __init__(self, config):
-				super(MyRunner, self).__init__(config)
+        class MyRunner(Runner):
+            def __init__(self, config):
+                super(MyRunner, self).__init__(config)
 
-			def setup_paths(self):
-				Runner.setup_paths(self)
-				if self.path_manager.initial_paths[-1] == os.getcwd():
-					self.path_manager.initial_paths.pop()
+            def setup_paths(self):
+                Runner.setup_paths(self)
+                if self.path_manager.initial_paths[-1] == os.getcwd():
+                    self.path_manager.initial_paths.pop()
 
-			def load_step_definitions(self, extra_step_paths=None):
-				if extra_step_paths is None:
-					extra_step_paths = []
-				# -- Allow steps to import other stuff from the steps dir
-				# NOTE: Default matcher can be overridden in "environment.py" hook.
-				steps_dir = os.path.join(self.base_dir, self.config.steps_dir)
-				step_paths = [steps_dir] + list(extra_step_paths)
-				load_step_modules(step_paths)
+            def load_step_definitions(self, extra_step_paths=None):
+                if extra_step_paths is None:
+                    extra_step_paths = []
+                # -- Allow steps to import other stuff from the steps dir
+                # NOTE: Default matcher can be overridden in "environment.py" hook.
+                steps_dir = os.path.join(self.base_dir, self.config.steps_dir)
+                step_paths = [steps_dir] + list(extra_step_paths)
+                load_step_modules(step_paths)
 
-		config = Configuration(None)
-		config.paths = [workspace_folder.root_path]
-		runner = MyRunner(config)
-		runner.setup_paths()
-		runner.load_step_definitions()
+        config = Configuration(None)
+        config.paths = [workspace_folder.root_path]
 
-		feature_locations = [filename for filename in runner.feature_locations()
-								if not runner.config.exclude(filename)]
-		features = parse_features(feature_locations, language=runner.config.lang)
-		runner.features.extend(features)
+        # import os.path
+        config.paths = [os.path.join(workspace_folder.root_path, 'uitests/uitests')]
+        runner = MyRunner(config)
+        runner.setup_paths()
+        runner.context = Context(runner)
+        runner.load_hooks()
+        runner.load_step_definitions()
 
-		step_definitions = step_registry.registry.steps
-	except Exception:
-		x = ''
-		pass
-	os.chdir(curdir)
-	return step_definitions
+        feature_locations = [filename for filename in runner.feature_locations()
+                                if not runner.config.exclude(filename)]
+        features = parse_features(feature_locations, language=runner.config.lang)
+        runner.features.extend(features)
+
+        step_definitions = step_registry.registry.steps
+    except Exception:
+        x = ''
+        # pass
+        raise
+    os.chdir(curdir)
+    return step_definitions
 
 def get_features(workspace_folder):
-	curdir = os.getcwd()
-	try:
-		os.chdir(workspace_folder.root_path)
-		def exec_file(filename, globals_=None, locals_=None):
-			if globals_ is None:
-				globals_ = {}
-			if locals_ is None:
-				locals_ = globals_
-			locals_["__file__"] = filename
-			with open(filename, "rb") as f:
-				# pylint: disable=exec-used
-				filename2 = os.path.relpath(filename, os.getcwd())
-				code = compile(f.read(), filename2, "exec", dont_inherit=True)
-				exec(code, globals_, locals_)
+    curdir = os.getcwd()
+    try:
+        os.chdir(workspace_folder.root_path)
+        def exec_file(filename, globals_=None, locals_=None):
+            if globals_ is None:
+                globals_ = {}
+            if locals_ is None:
+                locals_ = globals_
+            locals_["__file__"] = filename
+            with open(filename, "rb") as f:
+                # pylint: disable=exec-used
+                filename2 = os.path.relpath(filename, os.getcwd())
+                code = compile(f.read(), filename2, "exec", dont_inherit=True)
+                exec(code, globals_, locals_)
 
 
-		def load_step_modules(step_paths):
-			"""Load step modules with step definitions from step_paths directories."""
-			from behave import matchers
-			from behave.step_registry import setup_step_decorators
-			step_globals = {
-				"use_step_matcher": matchers.use_step_matcher,
-				"step_matcher":     matchers.step_matcher, # -- DEPRECATING
-			}
-			setup_step_decorators(step_globals)
+        def load_step_modules(step_paths):
+            """Load step modules with step definitions from step_paths directories."""
+            from behave import matchers
+            from behave.step_registry import setup_step_decorators
+            step_globals = {
+                "use_step_matcher": matchers.use_step_matcher,
+                "step_matcher":     matchers.step_matcher, # -- DEPRECATING
+            }
+            setup_step_decorators(step_globals)
 
-			# -- Allow steps to import other stuff from the steps dir
-			# NOTE: Default matcher can be overridden in "environment.py" hook.
-			with PathManager(step_paths):
-				default_matcher = matchers.current_matcher
-				for path in step_paths:
-					for name in sorted(os.listdir(path)):
-						if name.endswith(".py"):
-							# -- LOAD STEP DEFINITION:
-							# Reset to default matcher after each step-definition.
-							# A step-definition may change the matcher 0..N times.
-							# ENSURE: Each step definition has clean globals.
-							# try:
-							step_module_globals = step_globals.copy()
-							exec_file(os.path.join(path, name), step_module_globals)
-							matchers.current_matcher = default_matcher
+            # -- Allow steps to import other stuff from the steps dir
+            # NOTE: Default matcher can be overridden in "environment.py" hook.
+            with PathManager(step_paths):
+                default_matcher = matchers.current_matcher
+                for path in step_paths:
+                    for name in sorted(os.listdir(path)):
+                        if name.endswith(".py"):
+                            # -- LOAD STEP DEFINITION:
+                            # Reset to default matcher after each step-definition.
+                            # A step-definition may change the matcher 0..N times.
+                            # ENSURE: Each step definition has clean globals.
+                            # try:
+                            step_module_globals = step_globals.copy()
+                            exec_file(os.path.join(path, name), step_module_globals)
+                            matchers.current_matcher = default_matcher
 
-		class MyRunner(Runner):
-			def __init__(self, config):
-				super(MyRunner, self).__init__(config)
+        class MyRunner(Runner):
+            def __init__(self, config):
+                super(MyRunner, self).__init__(config)
 
-			def setup_paths(self):
-				Runner.setup_paths(self)
-				if self.path_manager.initial_paths[-1] == os.getcwd():
-					self.path_manager.initial_paths.pop()
+            def setup_paths(self):
+                Runner.setup_paths(self)
+                if self.path_manager.initial_paths[-1] == os.getcwd():
+                    self.path_manager.initial_paths.pop()
 
-			def load_step_definitions(self, extra_step_paths=None):
-				if extra_step_paths is None:
-					extra_step_paths = []
-				# -- Allow steps to import other stuff from the steps dir
-				# NOTE: Default matcher can be overridden in "environment.py" hook.
-				steps_dir = os.path.join(self.base_dir, self.config.steps_dir)
-				step_paths = [steps_dir] + list(extra_step_paths)
-				load_step_modules(step_paths)
+            def load_step_definitions(self, extra_step_paths=None):
+                if extra_step_paths is None:
+                    extra_step_paths = []
+                # -- Allow steps to import other stuff from the steps dir
+                # NOTE: Default matcher can be overridden in "environment.py" hook.
+                steps_dir = os.path.join(self.base_dir, self.config.steps_dir)
+                step_paths = [steps_dir] + list(extra_step_paths)
+                load_step_modules(step_paths)
 
-		config = Configuration(None)
-		config.paths = [workspace_folder.root_path]
-		runner = MyRunner(config)
-		runner.setup_paths()
-		runner.load_step_definitions()
+        config = Configuration(None)
+        config.paths = [workspace_folder.root_path]
+        config.paths = [os.path.join(workspace_folder.root_path, 'uitests/uitests')]
+        runner = MyRunner(config)
+        runner.setup_paths()
+        runner.context = Context(runner)
+        runner.load_hooks()
+        runner.load_step_definitions()
 
-		feature_locations = [filename for filename in runner.feature_locations()
-								if not runner.config.exclude(filename)]
-		features = parse_features(feature_locations, language=runner.config.lang)
-	except Exception:
-		x = ''
-		pass
-	os.chdir(curdir)
-	return features
+        feature_locations = [filename for filename in runner.feature_locations()
+                                if not runner.config.exclude(filename)]
+        features = parse_features(feature_locations, language=runner.config.lang)
+    except Exception:
+        x = ''
+        pass
+    os.chdir(curdir)
+    return features
 
 def get_steps(workspace_folder):
     features = get_features(workspace_folder)
@@ -215,7 +231,10 @@ def _get_step_definitions_at_position(document, line, column):
             continue
         if decorator.children[2].value != '(':
             continue
-        step_type = decorator.children[1].value
+        if isinstance(decorator.children[1], parso.python.tree.PythonNode):
+            step_type = decorator.children[1].children[2].value
+        else:
+            step_type = decorator.children[1].value
         if step_type not in ['given', 'when', 'then']:
             continue
         name = ast.literal_eval(decorator.children[3].value)

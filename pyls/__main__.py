@@ -4,13 +4,11 @@ import json
 import logging
 import logging.config
 import sys
-from .python_ls import start_io_lang_server, start_tcp_lang_server, PythonLanguageServer
+
+from .python_ls import (PythonLanguageServer, start_io_lang_server,
+                        start_tcp_lang_server)
 
 LOG_FORMAT = "%(asctime)s UTC - %(levelname)s - %(name)s - %(message)s"
-
-import ptvsd
-ptvsd.enable_attach()
-# ptvsd.wait_for_attach()
 # ptvsd.break_into_debugger()
 
 def add_arguments(parser):

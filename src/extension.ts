@@ -5,6 +5,7 @@
 'use strict';
 
 import * as net from 'net';
+import * as path from 'path';
 
 import { workspace, Disposable, ExtensionContext, commands, window, debug } from 'vscode';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, ErrorAction, ErrorHandler, CloseAction, TransportKind } from 'vscode-languageclient';
@@ -14,9 +15,9 @@ function startLangServer(command: string, args: string[], documentSelector: stri
 		command,
 		args,
 		options: {
-			cwd: '/Users/donjayamanne/Desktop/Development/vscode/python-language-server',
+			cwd: path.join(__dirname, '..'),
 			env: {
-				PYTHONPATH: '/Users/donjayamanne/Desktop/Development/vscode/python-language-server'
+				PYTHONPATH: path.join(__dirname, '..')
 			}
 		}
 	};
@@ -30,28 +31,27 @@ function startLangServer(command: string, args: string[], documentSelector: stri
 	return new LanguageClient(command, serverOptions, clientOptions).start();
 }
 
-function startLangServerTCP(addr: number, documentSelector: string[]): Disposable {
-	const serverOptions: ServerOptions = function() {
-		return new Promise((resolve, reject) => {
-			var client = new net.Socket();
-			client.connect(addr, "127.0.0.1", function() {
-				resolve({
-					reader: client,
-					writer: client
-				});
-			});
-		});
-	}
+// function startLangServerTCP(addr: number, documentSelector: string[]): Disposable {
+// 	const serverOptions: ServerOptions = function() {
+// 		return new Promise((resolve, reject) => {
+// 			var client = new net.Socket();
+// 			client.connect(addr, "127.0.0.1", function() {
+// 				resolve({
+// 					reader: client,
+// 					writer: client
+// 				});
+// 			});
+// 		});
+// 	}
 
-	const clientOptions: LanguageClientOptions = {
-		documentSelector: documentSelector,
-	}
-	return new LanguageClient(`tcp lang server (port ${addr})`, serverOptions, clientOptions).start();
-}
+// 	const clientOptions: LanguageClientOptions = {
+// 		documentSelector: documentSelector,
+// 	}
+// 	return new LanguageClient(`tcp lang server (port ${addr})`, serverOptions, clientOptions).start();
+// }
 
 export function activate(context: ExtensionContext) {
-	// context.subscriptions.push(startLangServer("/Users/donjayamanne/.local/share/virtualenvs/python-language-server-s8g1nifC/bin/python", ["-m", "pyls", "-vv"], ["python"]));
-	context.subscriptions.push(startLangServer("/Users/donjayamanne/.local/share/virtualenvs/python-language-server-s8g1nifC/bin/python", ["-m", "pyls", "-vv"], ["python", "feature"]));
+	context.subscriptions.push(startLangServer("/Users/donjayamanne/.local/share/virtualenvs/pythonVSCode-5rU-mS3t/bin/python", ["-m", "pyls", "-vv"], ["python", "feature"]));
 
 	context.subscriptions.push(commands.registerCommand('behave.runscenario', (scenario: string) => {
 		window.showInformationMessage(`Run Scenario: ${scenario}`);
@@ -74,13 +74,12 @@ export function activate(context: ExtensionContext) {
 		window.showInformationMessage(`Debug Feature: ${feature}`);
 		startDebugging(feature);
 	}))
-	// context.subscriptions.push(startLangServer("/Users/donjayamanne/.local/share/virtualenvs/python-language-server-s8g1nifC/bin/python", ["-m", "pyls", "-vv"], ["python", "feature"]));
 	// For TCP server needs to be started seperately
 	// context.subscriptions.push(startLangServerTCP(2087, ["python"]));
 }
 
 async function startDebugging(name?: string) {
-	const pythonPath = '/Users/donjayamanne/.local/share/virtualenvs/behaveSample-8n1WKFjY/bin/python';
+	const pythonPath = '/Users/donjayamanne/.local/share/virtualenvs/pythonVSCode-5rU-mS3t/bin/python';
 	const args = name ? ['-n', name] : [];
 	const debugConfig = {
 		name: 'Behave',
@@ -92,5 +91,5 @@ async function startDebugging(name?: string) {
 		// console: 'integratedTerminal'
 		console: 'none'
 	}
-	await debug.startDebugging(workspace.workspaceFolders[0], debugConfig);
+	await debug.startDebugging(workspace.workspaceFolders![0], debugConfig);
 }

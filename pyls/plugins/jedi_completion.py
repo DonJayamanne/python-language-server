@@ -41,17 +41,18 @@ _TYPE_MAP = {
 
 @hookimpl
 def pyls_completions(config, document, position):
-    definitions = document.jedi_script(position).completions()
-    if not definitions:
-        return None
+    return None
+    # definitions = document.jedi_script(position).completions()
+    # if not definitions:
+    #     return None
 
-    completion_capabilities = config.capabilities.get('textDocument', {}).get('completion', {})
-    snippet_support = completion_capabilities.get('completionItem', {}).get('snippetSupport')
+    # completion_capabilities = config.capabilities.get('textDocument', {}).get('completion', {})
+    # snippet_support = completion_capabilities.get('completionItem', {}).get('snippetSupport')
 
-    settings = config.plugin_settings('jedi_completion', document_path=document.path)
-    should_include_params = settings.get('include_params')
+    # settings = config.plugin_settings('jedi_completion', document_path=document.path)
+    # should_include_params = settings.get('include_params')
 
-    return [_format_completion(d, snippet_support and should_include_params) for d in definitions] or None
+    # return [_format_completion(d, snippet_support and should_include_params) for d in definitions] or None
 
 
 def _format_completion(d, include_params=True):

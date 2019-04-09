@@ -109,3 +109,10 @@ ENV/
 
 # Merge orig files
 *.orig
+
+
+# VS Code Extension
+out
+server
+node_modules
+.vscode-dev

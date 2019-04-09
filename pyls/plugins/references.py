@@ -22,7 +22,7 @@ def pyls_references(workspace, document, position, exclude_declaration=False):
                 matched_steps.append(step)
 
     # Filter out builtin modules
-    usages = [d for d in usages if not d.in_builtin_module()]
+    # usages = [d for d in usages if not d.in_builtin_module()]
 
     return [{
         'uri': uris.from_fs_path(os.path.join(workspace.root_path, d.filename)),

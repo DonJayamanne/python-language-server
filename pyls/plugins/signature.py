@@ -14,6 +14,7 @@ DOC_REGEX = [SPHINX, EPYDOC, GOOGLE]
 
 @hookimpl
 def pyls_signature_help(document, position):
+    return {'signatures': []}
     signatures = document.jedi_script(position).call_signatures()
 
     if not signatures:

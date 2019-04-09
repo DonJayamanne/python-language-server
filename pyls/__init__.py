@@ -1,3 +1,11 @@
+try:
+	import ptvsd
+	ptvsd.enable_attach()
+	ptvsd.wait_for_attach()
+except Exception:
+	pass
+
+
 # Copyright 2017 Palantir Technologies, Inc.
 import os
 from future.standard_library import install_aliases

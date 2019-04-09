@@ -9,6 +9,7 @@ log = logging.getLogger(__name__)
 
 @hookimpl
 def pyls_completions(config, workspace, document, position):
+    return []
     line_index = position['line']
     line = document.lines[line_index]
     if line.strip() == 'Th' or line.strip() == 'T':
